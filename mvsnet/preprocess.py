@@ -263,7 +263,7 @@ def gen_dtu_resized_path(dtu_data_folder, mode='training'):
     for i in data_set:
 
         image_folder = os.path.join(dtu_data_folder, ('Rectified/scan%d_train' % i))
-        cam_folder = os.path.join(dtu_data_folder, 'Cameras/train')
+        cam_folder = os.path.join(dtu_data_folder, 'Cameras')
         depth_folder = os.path.join(dtu_data_folder, ('Depths/scan%d_train' % i))
 
         if mode == 'training':
@@ -482,7 +482,7 @@ def gen_eth3d_path(eth3d_data_folder, mode='training'):
             name = str(dict_list[2 * i + 2])
             index2name[index] = name
 
-        # image name to depth name 
+        # image name to depth name
         name2depth = dict()
         name2depth['images_rig_cam4_undistorted'] = 'images_rig_cam4'
         name2depth['images_rig_cam5_undistorted'] = 'images_rig_cam5'
@@ -561,4 +561,39 @@ def gen_pipeline_mvs_list(dense_folder):
         pos += 2 * all_view_num
         # depth path
         mvs_list.append(paths)
+
     return mvs_list
+
+def gen_pipeline_mvs_list_dtu(image_folder, cam_folder):
+    """ mvs input path list for DTU dataset """
+    cluster_list_path = os.path.join(cam_folder, 'pair.txt')
+    cluster_list = open(cluster_list_path).read().split()
+
+    # for each dataset
+    mvs_list = []
+    pos = 1
+    for i in range(int(cluster_list[0])):
+        paths = []
+        # ref image
+        ref_index = int(cluster_list[pos])
+        pos += 1
+        ref_image_path = os.path.join(image_folder, ('rect_%03d_3_r5000.png' % (ref_index + 1)))
+        ref_cam_path = os.path.join(cam_folder, ('%08d_cam.txt' % ref_index))
+        paths.append(ref_image_path)
+        paths.append(ref_cam_path)
+        # view images
+        all_view_num = int(cluster_list[pos])
+        pos += 1
+        check_view_num = min(FLAGS.view_num - 1, all_view_num)
+        for view in range(check_view_num):
+            view_index = int(cluster_list[pos + 2 * view])
+            view_image_path = os.path.join(image_folder, ('rect_%03d_3_r5000.png' % (view_index + 1)))
+            view_cam_path = os.path.join(cam_folder, ('%08d_cam.txt' % view_index))
+            paths.append(view_image_path)
+            paths.append(view_cam_path)
+        pos += 2 * all_view_num
+        # depth path
+        mvs_list.append(paths)
+
+    return mvs_list
+

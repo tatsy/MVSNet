@@ -1,0 +1,10 @@
+*.pyc
+
+pretrain/*
+runs/*
+logs/*
+output/*
+mvsnet/runs/*
+mvsnet/logs/*
+mvsnet/output/*
+

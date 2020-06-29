@@ -25,24 +25,24 @@ from tools.common import Notify
 
 from preprocess import *
 from model import *
-from loss import * 
+from loss import *
 from homography_warping import get_homographies, homography_warping
 import photometric_augmentation as photaug
 
 # paths
-tf.app.flags.DEFINE_string('blendedmvs_data_root', '/data/BlendedMVS/dataset_low_res', 
+tf.app.flags.DEFINE_string('blendedmvs_data_root', '/data/BlendedMVS/dataset_low_res',
                            """Path to dtu dataset.""")
-tf.app.flags.DEFINE_string('eth3d_data_root', '/data/eth3d/lowres/training/undistorted', 
+tf.app.flags.DEFINE_string('eth3d_data_root', '/data/eth3d/lowres/training/undistorted',
                            """Path to dtu dataset.""")
-tf.app.flags.DEFINE_string('dtu_data_root', '/data/dtu', 
+tf.app.flags.DEFINE_string('dtu_data_root', '/data/dtu',
                            """Path to dtu dataset.""")
-tf.app.flags.DEFINE_boolean('train_blendedmvs', False, 
+tf.app.flags.DEFINE_boolean('train_blendedmvs', False,
                             """Whether to train.""")
-tf.app.flags.DEFINE_boolean('train_blendedmvg', False, 
+tf.app.flags.DEFINE_boolean('train_blendedmvg', False,
                             """Whether to train.""")
-tf.app.flags.DEFINE_boolean('train_dtu', False, 
+tf.app.flags.DEFINE_boolean('train_dtu', False,
                             """Whether to train.""")
-tf.app.flags.DEFINE_boolean('train_eth3d', False, 
+tf.app.flags.DEFINE_boolean('train_eth3d', False,
                             """Whether to train.""")
 tf.app.flags.DEFINE_string('log_folder', '/data/tf_log',
                            """Path to store the log.""")
@@ -50,19 +50,19 @@ tf.app.flags.DEFINE_string('model_folder', '/data/tf_model',
                            """Path to save the model.""")
 tf.app.flags.DEFINE_integer('ckpt_step', 0,
                             """ckpt step.""")
-tf.app.flags.DEFINE_boolean('use_pretrain', False, 
+tf.app.flags.DEFINE_boolean('use_pretrain', False,
                             """Whether to train.""")
 
 # input parameters
-tf.app.flags.DEFINE_integer('view_num', 3, 
+tf.app.flags.DEFINE_integer('view_num', 3,
                             """Number of images (1 ref image and view_num - 1 view images).""")
-tf.app.flags.DEFINE_integer('max_d', 192, 
+tf.app.flags.DEFINE_integer('max_d', 192,
                             """Maximum depth step when training.""")
-tf.app.flags.DEFINE_integer('max_w', 640, 
+tf.app.flags.DEFINE_integer('max_w', 640,
                             """Maximum image width when training.""")
-tf.app.flags.DEFINE_integer('max_h', 512, 
+tf.app.flags.DEFINE_integer('max_h', 512,
                             """Maximum image height when training.""")
-tf.app.flags.DEFINE_float('sample_scale', 0.25, 
+tf.app.flags.DEFINE_float('sample_scale', 0.25,
                             """Downsample scale for building cost volume.""")
 
 # network architectures
@@ -72,11 +72,11 @@ tf.app.flags.DEFINE_boolean('refinement', False,
                            """Whether to apply depth map refinement for 3DCNNs""")
 
 # training parameters
-tf.app.flags.DEFINE_integer('num_gpus', 1, 
+tf.app.flags.DEFINE_integer('num_gpus', 1,
                             """Number of GPUs.""")
-tf.app.flags.DEFINE_integer('batch_size', 1, 
+tf.app.flags.DEFINE_integer('batch_size', 1,
                             """Training batch size.""")
-tf.app.flags.DEFINE_integer('epoch', 6, 
+tf.app.flags.DEFINE_integer('epoch', 6,
                             """Training epoch number.""")
 tf.app.flags.DEFINE_float('base_lr', 0.001,
                           """Base learning rate.""")
@@ -129,10 +129,10 @@ class MVSGenerator:
         self.view_num = view_num
         self.sample_num = len(sample_list)
         self.counter = 0
-    
+
     def __iter__(self):
         while True:
-            for data in self.sample_list: 
+            for data in self.sample_list:
                 start_time = time.time()
 
                 ###### read input data ######
@@ -143,7 +143,7 @@ class MVSGenerator:
                     cam = load_cam(open(data[2 * view + 1]))
                     images.append(image)
                     cams.append(cam)
-                depth_image = load_pfm(open(data[2 * self.view_num]))
+                depth_image = load_pfm(open(data[2 * self.view_num], 'rb'))
 
                 # dataset specified process
                 if FLAGS.train_blendedmvs:
@@ -153,6 +153,8 @@ class MVSGenerator:
 
                 elif FLAGS.train_dtu:
                     # set depth range to [425, 937]
+                    depth_image = scale_image(depth_image, scale=FLAGS.sample_scale)
+                    cams = scale_mvs_camera(cams, scale=FLAGS.sample_scale)
                     cams[0][1, 3, 0] = 425
                     cams[0][1, 3, 3] = 937
 
@@ -163,16 +165,16 @@ class MVSGenerator:
                     # downsize by 4 to fit depth map output
                     depth_image = scale_image(depth_image, scale=FLAGS.sample_scale)
                     cams = scale_mvs_camera(cams, scale=FLAGS.sample_scale)
-                
+
                 else:
                     print ('Please specify a valid training dataset.')
                     exit(-1)
-		
+
                 # skip invalid views
                 if cams[0][1, 3, 0] <= 0 or cams[0][1, 3, 3] <= 0:
-                    continue			
+                    continue
 
-                # fix depth range and adapt depth sample number 
+                # fix depth range and adapt depth sample number
                 cams[0][1, 3, 2] = FLAGS.max_d
                 cams[0][1, 3, 1] = (cams[0][1, 3, 3] - cams[0][1, 3, 0]) / FLAGS.max_d
 
@@ -188,7 +190,8 @@ class MVSGenerator:
                 cams = np.stack(cams, axis=0)
                 print('Forward pass: d_min = %f, d_max = %f.' % \
                     (cams[0][1, 3, 0], cams[0][1, 3, 0] + (FLAGS.max_d - 1) * cams[0][1, 3, 1]))
-                yield (images, cams, depth_image) 
+
+                yield (images, cams, depth_image)
 
                 # return backward mvs input for GRU
                 if FLAGS.regularization == 'GRU':
@@ -199,7 +202,7 @@ class MVSGenerator:
                     duration = time.time() - start_time
                     print('Back pass: d_min = %f, d_max = %f.' % \
                         (cams[0][1, 3, 0], cams[0][1, 3, 0] + (FLAGS.max_d - 1) * cams[0][1, 3, 1]))
-                    yield (images, cams, depth_image) 
+                    yield (images, cams, depth_image)
 
 def average_gradients(tower_grads):
     """Calculate the average gradient for each shared variable across all towers.
@@ -243,7 +246,7 @@ def train(traning_list):
         training_sample_size = training_sample_size * 2
     print ('Training sample number: ', training_sample_size)
 
-    with tf.Graph().as_default(), tf.device('/cpu:0'): 
+    with tf.Graph().as_default(), tf.device('/cpu:0'):
 
         ########## data iterator #########
         # training generators
@@ -258,24 +261,24 @@ def train(traning_list):
 
         ########## optimization options ##########
         global_step = tf.Variable(0, trainable=False, name='global_step')
-        lr_op = tf.train.exponential_decay(FLAGS.base_lr, global_step=global_step, 
+        lr_op = tf.train.exponential_decay(FLAGS.base_lr, global_step=global_step,
                                            decay_steps=FLAGS.stepvalue, decay_rate=FLAGS.gamma, name='lr')
         opt = tf.train.RMSPropOptimizer(learning_rate=lr_op)
 
         tower_grads = []
-        for i in xrange(FLAGS.num_gpus):
+        for i in range(FLAGS.num_gpus):
             with tf.device('/gpu:%d' % i):
                 with tf.name_scope('Model_tower%d' % i) as scope:
                     # get data
                     images, cams, depth_image = training_iterator.get_next()
 
-                    # photometric augmentation and image normalization 
+                    # photometric augmentation and image normalization
                     arg_images = []
                     for view in range(0, FLAGS.view_num):
                         image = tf.squeeze(tf.slice(images, [0, view, 0, 0, 0], [-1, 1, -1, -1, 3]), axis=1)
                         if FLAGS.online_augmentation:
-                            image = tf.map_fn(online_augmentation, image, back_prop=False) 
-                        image = tf.image.per_image_standardization(image)                   
+                            image = tf.map_fn(online_augmentation, image, back_prop=False)
+                        image = tf.image.per_image_standardization(image)
                         arg_images.append(image)
                     images = tf.stack(arg_images, axis=1)
 
@@ -302,7 +305,7 @@ def train(traning_list):
                         if FLAGS.refinement:
                             ref_image = tf.squeeze(
                                 tf.slice(images, [0, 0, 0, 0, 0], [-1, 1, -1, -1, 3]), axis=1)
-                            refined_depth_map = depth_refine(depth_map, ref_image, 
+                            refined_depth_map = depth_refine(depth_map, ref_image,
                                     FLAGS.max_d, depth_start, depth_interval, is_master_gpu)
                         else:
                             refined_depth_map = depth_map
@@ -324,7 +327,7 @@ def train(traning_list):
                         loss, mae, less_one_accuracy, less_three_accuracy, depth_map = \
                             mvsnet_classification_loss(
                                 prob_volume, depth_image, FLAGS.max_d, depth_start, depth_interval)
-                    
+
                     # retain the summaries from the final tower.
                     summaries = tf.get_collection(tf.GraphKeys.SUMMARIES, scope)
 
@@ -333,14 +336,14 @@ def train(traning_list):
 
                     # keep track of the gradients across all towers.
                     tower_grads.append(grads)
-        
+
         # average gradient
         grads = average_gradients(tower_grads)
-        
+
         # training opt
         train_opt = opt.apply_gradients(grads, global_step=global_step)
 
-        # summary 
+        # summary
         summaries.append(tf.summary.scalar('loss', loss))
         summaries.append(tf.summary.scalar('less_one_accuracy', less_one_accuracy))
         summaries.append(tf.summary.scalar('less_three_accuracy', less_three_accuracy))
@@ -351,9 +354,9 @@ def train(traning_list):
         for grad, var in grads:
             if grad is not None:
                 summaries.append(tf.summary.histogram(var.op.name + '/gradients', grad))
-        
+
         # saver
-        saver = tf.train.Saver(tf.global_variables(), max_to_keep=None)        
+        saver = tf.train.Saver(tf.global_variables(), max_to_keep=None)
         summary_op = tf.summary.merge(summaries)
 
         # initialization option
@@ -361,8 +364,8 @@ def train(traning_list):
         config = tf.ConfigProto(allow_soft_placement = True)
         config.gpu_options.allow_growth = True
 
-        with tf.Session(config=config) as sess:     
-            
+        with tf.Session(config=config) as sess:
+
             # initialization
             total_step = 0
             sess.run(init_op)
@@ -400,11 +403,11 @@ def train(traning_list):
                         print(Notify.INFO,
                             'epoch, %d, step %d, total_step %d, loss = %.4f, (< 1px) = %.4f, (< 3px) = %.4f (%.3f sec/step)' %
                             (epoch, step, total_step, out_loss, out_less_one, out_less_three, duration), Notify.ENDC)
-                    
+
                     # write summary
                     if step % (FLAGS.display * 10) == 0:
                         summary_writer.add_summary(out_summary_op, total_step)
-                   
+
                     # save the model checkpoint periodically
                     if (total_step % FLAGS.snapshot == 0 or step == (training_sample_size - 1)):
                         model_folder = os.path.join(FLAGS.model_folder, FLAGS.regularization)

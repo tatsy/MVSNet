@@ -124,7 +124,7 @@ class Network(object):
         assert args
         self.terminals = []
         for fed_layer in args:
-            if isinstance(fed_layer, basestring):
+            if isinstance(fed_layer, str):
                 try:
                     fed_layer = self.layers[fed_layer]
                 except KeyError:
@@ -231,7 +231,7 @@ class Network(object):
         H = shape[2]
         W = shape[3]
         if channel_wise:
-            G = max(1, C / group_channel)
+            G = max(1, C // group_channel)
         else:
             G = min(group, C)
 
@@ -361,7 +361,7 @@ class Network(object):
         H = shape[2]
         W = shape[3]
         if channel_wise:
-            G = max(1, C / group_channel)
+            G = max(1, C // group_channel)
         else:
             G = min(group, C)
 
