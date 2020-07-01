@@ -117,7 +117,7 @@ def mvsnet_to_gipuma(dense_folder, gipuma_point_folder):
 
     image_folder = os.path.join(dense_folder, 'images')
     cam_folder = os.path.join(dense_folder, 'cams')
-    depth_folder = os.path.join(dense_folder, 'depths_mvsnet')
+    depth_folder = os.path.join(dense_folder, 'depths')
 
     gipuma_cam_folder = os.path.join(gipuma_point_folder, 'cams')
     gipuma_image_folder = os.path.join(gipuma_point_folder, 'images')
@@ -132,14 +132,14 @@ def mvsnet_to_gipuma(dense_folder, gipuma_point_folder):
     image_names = os.listdir(image_folder)
     for image_name in image_names:
         image_prefix = os.path.splitext(image_name)[0]
-        in_cam_file = os.path.join(depth_folder, image_prefix+'.txt')
+        in_cam_file = os.path.join(cam_folder, image_prefix+'.txt')
         out_cam_file = os.path.join(gipuma_cam_folder, image_name+'.P')
         mvsnet_to_gipuma_cam(in_cam_file, out_cam_file)
 
     # copy images to gipuma image folder
     image_names = os.listdir(image_folder)
     for image_name in image_names:
-        in_image_file = os.path.join(depth_folder, image_name)
+        in_image_file = os.path.join(image_folder, image_name)
         out_image_file = os.path.join(gipuma_image_folder, image_name)
         shutil.copy(in_image_file, out_image_file)
 
@@ -159,7 +159,7 @@ def mvsnet_to_gipuma(dense_folder, gipuma_point_folder):
 
 def probability_filter(dense_folder, prob_threshold):
     image_folder = os.path.join(dense_folder, 'images')
-    depth_folder = os.path.join(dense_folder, 'depths_mvsnet')
+    depth_folder = os.path.join(dense_folder, 'depths')
 
     # convert cameras
     image_names = os.listdir(image_folder)
@@ -212,7 +212,7 @@ if __name__ == '__main__':
     disp_threshold = args.disp_threshold
     num_consistent = args.num_consistent
 
-    point_folder = os.path.join(dense_folder, 'points_mvsnet')
+    point_folder = os.path.join(dense_folder, 'points')
     if not os.path.isdir(point_folder):
         os.mkdir(point_folder)
 
