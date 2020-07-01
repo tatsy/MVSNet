@@ -22,7 +22,7 @@ def group_norm(input_tensor,
     H = shape[2]
     W = shape[3]
     if channel_wise:
-        G = max(1, C / group_channel)
+        G = max(1, C // group_channel)
     else:
         G = min(group, C)
 
@@ -33,7 +33,7 @@ def group_norm(input_tensor,
     # use instance normalization to simplify operations
     elif G >= C:
         return tf.contrib.layers.instance_norm(input_tensor)
-    
+
     # group normalization as suggested in the paper
     else:
         x = tf.reshape(x, [N, G, C // G, H, W])
@@ -41,10 +41,10 @@ def group_norm(input_tensor,
         x = (x - mean) / tf.sqrt(var + 1e-5)
 
         # per channel scale and bias (gamma and beta)
-        with tf.variable_scope(name + '/gn', reuse=is_reuse):        
+        with tf.variable_scope(name + '/gn', reuse=is_reuse):
             gamma = tf.get_variable('gamma', [C], dtype=tf.float32, initializer=tf.ones_initializer())
             beta = tf.get_variable('beta', [C], dtype=tf.float32, initializer=tf.zeros_initializer())
-            
+
         gamma = tf.reshape(gamma, [1, C, 1, 1])
         beta = tf.reshape(beta, [1, C, 1, 1])
         output = tf.reshape(x, [-1, C, H, W]) * gamma + beta
@@ -82,7 +82,7 @@ class ConvGRUCell(tf.contrib.rnn.RNNCell):
         with tf.variable_scope(scope, reuse=tf.AUTO_REUSE):
 
             with tf.variable_scope('Gates'):
-                
+
                 # concatenation
                 inputs = tf.concat([x, h], axis=self._feature_axis)
 
@@ -91,7 +91,7 @@ class ConvGRUCell(tf.contrib.rnn.RNNCell):
                     inputs, 2 * self._filters, self._kernel, padding='same', name='conv')
                 reset_gate, update_gate = tf.split(conv, 2, axis=self._feature_axis)
 
-                # group normalization, actually is 'instance normalization' as to save GPU memory 
+                # group normalization, actually is 'instance normalization' as to save GPU memory
                 reset_gate = group_norm(reset_gate, 'reset_norm', group_channel=16)
                 update_gate = group_norm(update_gate, 'update_norm', group_channel=16)
 
@@ -110,7 +110,7 @@ class ConvGRUCell(tf.contrib.rnn.RNNCell):
 
                 # group normalization
                 conv = group_norm(conv, 'output_norm', group_channel=16)
-                    
+
                 # activation
                 y = self._activation(conv)
 

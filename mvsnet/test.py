@@ -117,7 +117,6 @@ class MVSGenerator:
                         cam = load_cam(cam_file, FLAGS.interval_scale)
                         images.append(image)
                         cams.append(cam)
-                print ('range: ', cams[0][1, 3, 0], cams[0][1, 3, 1], cams[0][1, 3, 2], cams[0][1, 3, 3])
 
                 # determine a proper scale to resize input
                 resize_scale = 1
@@ -161,15 +160,23 @@ class MVSGenerator:
                 self.counter += 1
                 yield (scaled_images, centered_images, scaled_cams, image_index)
 
-def mvsnet_pipeline(mvs_list):
+def mvsnet_pipeline(mvs_list, output_folder=None):
 
     """ mvsnet in altizure pipeline """
     print ('Testing sample number: ', len(mvs_list))
 
     # create output folder
-    output_folder = os.path.join(FLAGS.output_folder, 'depths_mvsnet')
-    if not os.path.isdir(output_folder):
-        os.mkdir(output_folder)
+    if output_folder is None:
+        output_folder = os.path.join(FLAGS.output_folder, 'depths_mvsnet')
+
+    out_images_folder = os.path.join(output_folder, 'images')
+    out_cams_folder = os.path.join(output_folder, 'cams')
+    out_depths_folder = os.path.join(output_folder, 'depths')
+
+    os.makedirs(output_folder, exist_ok=True)
+    os.makedirs(out_images_folder, exist_ok=True)
+    os.makedirs(out_cams_folder, exist_ok=True)
+    os.makedirs(out_depths_folder, exist_ok=True)
 
     # testing set
     mvs_generator = iter(MVSGenerator(mvs_list, FLAGS.view_num))
@@ -271,12 +278,12 @@ def mvsnet_pipeline(mvs_list):
             out_index = np.squeeze(out_index)
 
             # paths
-            init_depth_map_path = output_folder + ('/%08d_init.pfm' % out_index)
-            vis_depth_map_path = output_folder + ('/%08d_init_vis.png' % out_index)
-            prob_map_path = output_folder + ('/%08d_prob.pfm' % out_index)
-            vis_prob_map_path = output_folder + ('/%08d_prob_vis.png' % out_index)
-            out_ref_image_path = output_folder + ('/%08d.jpg' % out_index)
-            out_ref_cam_path = output_folder + ('/%08d.txt' % out_index)
+            init_depth_map_path = os.path.join(out_depths_folder, ('%08d_init.pfm' % out_index))
+            vis_depth_map_path = os.path.join(out_depths_folder, ('%08d_init_vis.png' % out_index))
+            prob_map_path = os.path.join(out_depths_folder, ('%08d_prob.pfm' % out_index))
+            vis_prob_map_path = os.path.join(out_depths_folder, ('%08d_prob_vis.png' % out_index))
+            out_ref_image_path = os.path.join(out_images_folder, ('%08d.jpg' % out_index))
+            out_ref_cam_path = os.path.join(out_cams_folder, ('%08d.txt' % out_index))
 
             # save output
             write_pfm(init_depth_map_path, out_init_depth_image)
@@ -298,12 +305,15 @@ def main(_):  # pylint: disable=unused-argument
         mvsnet_pipeline(mvs_list)
 
     elif FLAGS.dense_folder_list is not None:
-        dense_folder_list = open(FLAGS.dense_folder_list).read().split()
-        for dense_folder in dense_folder_list:
-            image_folder = os.path.join(FLAGS.dtu_data_root, 'Rectified', dense_folder)
+        # Process test scans in DTU dataset
+        scan_folder_list = open(FLAGS.dense_folder_list).read().split()
+        for scan_folder in scan_folder_list:
+            image_folder = os.path.join(FLAGS.dtu_data_root, 'Rectified', scan_folder)
             cam_folder = os.path.join(FLAGS.dtu_data_root, 'Cameras')
             mvs_list = gen_pipeline_mvs_list_dtu(image_folder, cam_folder)
-            mvsnet_pipeline(mvs_list)
+            output_folder = os.path.join(FLAGS.output_folder, scan_folder, 'mvsnet')
+            mvsnet_pipeline(mvs_list, output_folder)
+            tf.reset_default_graph()
 
 if __name__ == '__main__':
     print ('Testing MVSNet with totally %d view inputs (including reference view)' % FLAGS.view_num)
