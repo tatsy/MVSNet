@@ -19,6 +19,7 @@ RUN conda init bash
 RUN conda install python=3.7
 
 # MVSNet
+ARG CACHEBUST=1
 RUN git clone https://github.com/tatsy/MVSNet.git --depth 1 $MVSNET_ROOT
 RUN cd $MVSNET_ROOT && conda install --yes --file requirements.txt
 
