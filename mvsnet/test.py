@@ -93,7 +93,7 @@ class MVSGenerator:
                     pat = re.compile('rect_([0-9]{3})_[0-9]_r5000.png')
                     mat = pat.search(data[0])
                     if mat is not None:
-                        image_index = int(mat.group(1)) - 1
+                        image_index = int(mat.group(1))
                     else:
                         raise Exception('image index could not be parsed from file name')
 
