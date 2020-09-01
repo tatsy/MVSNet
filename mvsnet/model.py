@@ -282,7 +282,7 @@ def inference_prob_recurrent(images, cams, depth_num, depth_start, depth_interva
     gru1_filters = 16
     gru2_filters = 4
     gru3_filters = 2
-    feature_shape = [FLAGS.batch_size, FLAGS.max_h/4, FLAGS.max_w/4, 32]
+    feature_shape = [FLAGS.batch_size, FLAGS.max_h//4, FLAGS.max_w//4, 32]
     gru_input_shape = [feature_shape[1], feature_shape[2]]
     state1 = tf.zeros([FLAGS.batch_size, feature_shape[1], feature_shape[2], gru1_filters])
     state2 = tf.zeros([FLAGS.batch_size, feature_shape[1], feature_shape[2], gru2_filters])
@@ -367,7 +367,7 @@ def inference_winner_take_all(images, cams, depth_num, depth_start, depth_end,
     gru1_filters = 16
     gru2_filters = 4
     gru3_filters = 2
-    feature_shape = [FLAGS.batch_size, FLAGS.max_h/4, FLAGS.max_w/4, 32]
+    feature_shape = [FLAGS.batch_size, FLAGS.max_h//4, FLAGS.max_w//4, 32]
     gru_input_shape = [feature_shape[1], feature_shape[2]]
     state1 = tf.zeros([FLAGS.batch_size, feature_shape[1], feature_shape[2], gru1_filters])
     state2 = tf.zeros([FLAGS.batch_size, feature_shape[1], feature_shape[2], gru2_filters])
@@ -442,7 +442,7 @@ def inference_winner_take_all(images, cams, depth_num, depth_start, depth_end,
         depth_index = tf.add(depth_index, incre)
 
         return depth_index, state1, state2, state3, depth_image, max_prob_image, exp_sum, incre
-    
+
     # run forward loop
     exp_sum = tf.assign(exp_sum, init_map)
     depth_image = tf.assign(depth_image, init_map)
