@@ -93,7 +93,7 @@ class MVSGenerator:
                     pat = re.compile('rect_([0-9]{3})_[0-9]_r5000.png')
                     mat = pat.search(data[0])
                     if mat is not None:
-                        image_index = int(mat.group(1)) - 1
+                        image_index = int(mat.group(1))
                     else:
                         raise Exception('image index could not be parsed from file name')
 
@@ -117,7 +117,6 @@ class MVSGenerator:
                         cam = load_cam(cam_file, FLAGS.interval_scale)
                         images.append(image)
                         cams.append(cam)
-                print ('range: ', cams[0][1, 3, 0], cams[0][1, 3, 1], cams[0][1, 3, 2], cams[0][1, 3, 3])
 
                 # determine a proper scale to resize input
                 resize_scale = 1
@@ -218,13 +217,15 @@ def mvsnet_pipeline(mvs_list, output_folder=None):
             refined_depth_map = depth_refine(
                 init_depth_map, ref_image, FLAGS.max_d, depth_start, depth_interval, True)
 
-        vis_depth_map = tf_colorize(init_depth_map, vmin=depth_start, vmax=depth_end)
-        vis_prob_map = tf_colorize(prob_map, vmin=0.0, vmax=1.0)
-
     # depth map inference using GRU
     elif FLAGS.regularization == 'GRU':
         init_depth_map, prob_map = inference_winner_take_all(centered_images, scaled_cams,
             depth_num, depth_start, depth_end, reg_type='GRU', inverse_depth=FLAGS.inverse_depth)
+
+    # Visualization
+    vis_depth_map = tf_colorize(init_depth_map, vmin=depth_start, vmax=depth_end)
+    vis_prob_map = tf_colorize(prob_map, vmin=0.0, vmax=1.0)
+
 
     # init option
     init_op = tf.global_variables_initializer()

@@ -201,7 +201,7 @@ def load_pfm(file):
     data = np.fromstring(data_string, data_type)
     shape = (height, width, 3) if color else (height, width)
     data = np.reshape(data, shape)
-    data = cv2.flip(data, 0)
+
     return data
 
 def write_pfm(file, image, scale=1):
@@ -210,8 +210,6 @@ def write_pfm(file, image, scale=1):
 
     if image.dtype.name != 'float32':
         raise Exception('Image dtype must be float32.')
-
-    image = np.flipud(image)
 
     if len(image.shape) == 3 and image.shape[2] == 3: # color image
         color = True
