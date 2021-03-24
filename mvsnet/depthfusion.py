@@ -196,22 +196,8 @@ def depth_map_fusion(point_folder, fusibile_exe_path, disp_thresh, num_consisten
 
     return
 
-if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--dense_folder', type=str, default = '')
-    parser.add_argument('--fusibile_exe_path', type=str, default = '/home/yoyo/Documents/software/fusibile/fusibile')
-    parser.add_argument('--prob_threshold', type=float, default = '0.8')
-    parser.add_argument('--disp_threshold', type=float, default = '0.25')
-    parser.add_argument('--num_consistent', type=float, default = '3')
-    args = parser.parse_args()
-
-    dense_folder = args.dense_folder
-    fusibile_exe_path = args.fusibile_exe_path
-    prob_threshold = args.prob_threshold
-    disp_threshold = args.disp_threshold
-    num_consistent = args.num_consistent
-
+def process(dense_folder, fusibile_exe_path, prob_threshold, disp_threshold, num_consistent):
     point_folder = os.path.join(dense_folder, 'points')
     if not os.path.isdir(point_folder):
         os.mkdir(point_folder)
@@ -227,3 +213,29 @@ if __name__ == '__main__':
     # depth map fusion with gipuma
     print ('Run depth map fusion & filter')
     depth_map_fusion(point_folder, fusibile_exe_path, disp_threshold, num_consistent)
+
+
+if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--dense_folder', type=str, default = '')
+    parser.add_argument('--fusibile_exe_path', type=str, default = '/home/yoyo/Documents/software/fusibile/fusibile')
+    parser.add_argument('--prob_threshold', type=float, default = '0.8')
+    parser.add_argument('--disp_threshold', type=float, default = '0.25')
+    parser.add_argument('--num_consistent', type=float, default = '3')
+    parser.add_argument('--all', default=False, action='store_true')
+    args = parser.parse_args()
+
+    fusibile_exe_path = args.fusibile_exe_path
+    prob_threshold = args.prob_threshold
+    disp_threshold = args.disp_threshold
+    num_consistent = args.num_consistent
+
+    if args.all:
+        scans = [d for d in os.listdir(args.dense_folder) if 'scan' in d]
+        for scan in scans:
+            dense_folder = os.path.join(args.dense_folder, scan, 'mvsnet')
+            process(dense_folder, fusibile_exe_path, prob_threshold, disp_threshold, num_consistent)
+    else:
+        dense_folder = args.dense_folder
+        process(dense_folder, fusibile_exe_path, prob_threshold, disp_threshold, num_consistent)
